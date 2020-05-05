@@ -78,8 +78,8 @@ switch ($method) {
     $num = 0;
     while (($row = $sth->fetch(PDO::FETCH_ASSOC, PDO::FETCH_ORI_NEXT)) !== FALSE) {
       if ($num++ > 0) { echo ","; }
-      echo "{\"id\":\"".$row["id"]."\"";
-      echo ",\"content\":\"".$row["content"]."\"";
+      echo "{\"id\":".$row["id"];
+      echo ",\"content\":".$row["content"];
       echo "}";
     }
     if (!isset($key)) {
