@@ -51,7 +51,7 @@ $jsonstr = json_encode($input);
 $key = null;
 if (count($request)>=1) {
   $key = array_shift($request);
-  if (isset($key) && !$key) { #empty string basically
+  if (isset($key) && !is_numeric($key)) {
     unset($key);
   }
 }
@@ -61,28 +61,33 @@ switch ($method) {
   case 'GET':
     // for listing all latest data
     $sql = "
+      select array_to_json(array_agg(v)) as json
+      from (
       select s.id
       ,s.content
-      ,(select array_to_json(array_agg(t))
+      ,coalesce((
+        select array_to_json(array_agg(t))
         from (
           select m.id,m.content
-          ,(select array_to_json(array_agg(u))
-                  from (
-                    select a.id,a.content
-                    from $dbschm.assignment a
-                    where a.module_id = m.id
-                  ) u
-                ) as assignments
+          ,coalesce((
+            select array_to_json(array_agg(u))
+            from (
+              select a.id,a.content
+              from $dbschm.assignment a
+              where a.module_id = m.id
+            ) u
+          ),'null') as assignments
           from $dbschm.module m
           where m.studypath_id = s.id
         ) t
-      ) modules
+      ),'null') modules
       from $dbschm.studypath s
+      ) v
     ";
     if (isset($key)) {
       $sql.= " WHERE id=?";
-    } else {
-      echo "[";
+    //} else {
+    //  echo "[";
     }
     // excecute SQL statement
     $sth = $dbh->prepare($sql,array(PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL));
@@ -92,15 +97,18 @@ switch ($method) {
     $sth->execute();
     $num = 0;
     while (($row = $sth->fetch(PDO::FETCH_ASSOC, PDO::FETCH_ORI_NEXT)) !== FALSE) {
+      echo $row["json"];
+      /*
       if ($num++ > 0) { echo ","; }
       echo "{\"id\":".$row["id"];
       echo ",\"content\":".$row["content"];
       echo ",\"modules\":".$row["modules"];
       echo "}";
+      //*/
     }
-    if (!isset($key)) {
-      echo "]";
-    }
+    //if (!isset($key)) {
+    //  echo "]";
+    //}
     break;
   case 'PUT':
   case 'POST':
